@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Burs/Kredi Tahmin Sistemi</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>    
+    
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .main-container {
+            display: flex;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .form-container {
+            flex: 1.2;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .result-container {
+            flex: 0.8;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: none;
+            position: sticky;
+            top: 20px;
+            height: fit-content;
+        }
+        
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #374151;
+            font-weight: 500;
+        }
+        
+        select, input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            background-color: white;
+        }
+        
+        select:focus, input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            background-color: var(--secondary-color);
+        }
+        
+        .result-text {
+            text-align: center;
+            font-size: 24px;
+            margin: 20px 0;
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+        
+        .chart-container {
+            position: relative;
+            margin: auto;
+            height: 300px;
+            width: 100%;
+        }
+
+        .min-wage-info {
+            background-color: #f3f4f6;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #4b5563;
+        }
+        
+        @media (max-width: 968px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .form-container {
+                max-height: none;
+            }
+            
+            .result-container {
+                position: static;
+            }
+        }
+
+        .result-message {
+        text-align: center;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        font-size: 18px;
+        line-height: 1.5;
+    }
+    
+    .success-message {
+        background-color: #ecfdf5;
+        color: #065f46;
+        border: 1px solid #059669;
+    }
+    
+    .warning-message {
+        background-color: #fff7ed;
+        color: #9a3412;
+        border: 1px solid #ea580c;
+    }
+    
+    .charts-container {
+        display: flex;
+        gap: 20px;
+        margin-top: 20px;
+    }
+    
+    .chart-wrapper {
+        flex: 1;
+        padding: 15px;
+        background-color: #f8fafc;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    .chart-title {
+        text-align: center;
+        margin-bottom: 15px;
+        font-size: 16px;
+        color: #475569;
+    }
+    
+    @media (max-width: 768px) {
+        .charts-container {
+            flex-direction: column;
+        }
+    }
+        
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="form-container">
+            <h1>Burs/Kredi Tahmin Sistemi</h1>
+            <form id="predictionForm">
+                <div class="form-group">
+                    <label for="education_status">Eğitim durumunuz nedir?</label>
+                    <select id="education_status" name="education_status" required>
+                        <option value="">Seçiniz</option>
+                        <option value="on_lisans">Ön Lisans</option>
+                        <option value="lisans">Lisans</option>
+                        <option value="yuksek_lisans">Yüksek Lisans</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="teaching_status">Öğretim durumu?</label>
+                    <select id="teaching_status" name="teaching_status" required>
+                        <option value="">Seçiniz</option>
+                        <option value="orgun">Örgün Öğretim</option>
+                        <option value="ikinci">İkinci Öğretim</option>
+                        <option value="acik">Açık Öğretim</option>
+                        <option value="uzaktan">Uzaktan Eğitim</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="city_of_residence">Yaşadığın Şehir?</label>
+                    <select id="city_of_residence" name="city_of_residence" required>
+                        <option value="">Seçiniz</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="city_of_study">Okuduğun Şehir?</label>
+                    <select id="city_of_study" name="city_of_study" required>
+                        <option value="">Seçiniz</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="special_status">Özel Durumu?</label>
+                    <select id="special_status" name="special_status" required>
+                        <option value="">Seçiniz</option>
+                        <option value="yok">Özel Durumu Yok</option>
+                        <option value="sehit_gazi">Şehit ve Gazi çocuğu</option>
+                        <option value="engelli">%40 ve üzeri engele sahip öğrenci</option>
+                        <option value="yetim">Yetim veya Öksüz</option>
+                        <option value="yurt">Yerleştirme Yurtlarında okumuş</option>
+                        <option value="darussafaka">Darüşşafaka Lisesinde okumuş</option>
+                        <option value="sporcu">Amatör milli sporcu olan öğrenci</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="siblings_count">Ailedeki toplam kişi sayısı (Anne, baba, kardeş ve siz dahil):</label>
+                    <input type="number" id="siblings_count" name="siblings_count" min="1" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="siblings_number">Kardeş sayısı (Kendiniz hariç, kardeşiniz yoksa 0 yazınız):</label>
+                    <input type="number" id="siblings_number" name="siblings_number" min="0" required>
+                    <div class="min-wage-info">
+                        Örnek: Tek çocuksanız 0, bir kardeşiniz varsa 1 yazınız.
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="has_scholarship_brother">Burs alan kardeşiniz oldu mu?</label>
+                    <select id="has_scholarship_brother" name="has_scholarship_brother" required>
+                        <option value="">Seçiniz</option>
+                        <option value="evet">Evet</option>
+                        <option value="hayir">Hayır</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="family_status">Ailevi durum?</label>
+                    <select id="family_status" name="family_status" required>
+                        <option value="">Seçiniz</option>
+                        <option value="birlikte">Anne ve baba birlikte</option>
+                        <option value="ayri">Anne ve baba ayrı</option>
+                        <option value="anne">Sadece anne ile birlikte</option>
+                        <option value="baba">Sadece baba ile birlikte</option>
+                        <option value="vefat">Anne veya baba vefat etmiş</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="mother_job">Anne mesleği:</label>
+                    <select id="mother_job" name="mother_job" required>
+                        <option value="">Seçiniz</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="father_job">Baba mesleği:</label>
+                    <select id="father_job" name="father_job" required>
+                        <option value="">Seçiniz</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="rent_status">Kira Durumunuz:</label>
+                    <select id="rent_status" name="rent_status" required>
+                        <option value="">Seçiniz</option>
+                        <option value="evet">Evet, kiradayız.</option>
+                        <option value="hayir">Hayır, kendi evimizde oturuyoruz.</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="house_count">Eviniz var mı? Varsa kaç tane? (Yoksa 0 girin.)</label>
+                    <input type="number" id="house_count" name="house_count" min="0" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="car_count">Arabanız var mı? Varsa kaç tane? (Yoksa 0 girin.)</label>
+                    <input type="number" id="car_count" name="car_count" min="0" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="application_year">Kredi ve Burs başvuru tarihiniz nedir?</label>
+                    <select id="application_year" name="application_year" required>
+                        <option value="">Seçiniz</option>
+                        <option value="2020">2020</option>
+                        <option value="2021">2021</option>
+                        <option value="2022">2022</option>
+                        <option value="2023">2023</option>
+                        <option value="2024">2024</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="monthly_income">Başvuru yılındaki ailenin toplam aylık geliriniz:</label>
+                    <div class="min-wage-info" id="minWageInfo">
+                        Seçilen yılın asgari ücreti: <span id="selectedYearWage">Yıl seçiniz</span>
+                        <br>
+                        <strong>Önemli:</strong> Lütfen seçtiğiniz başvuru yılına göre bilgilerinizi giriniz.
+                    </div>
+                    <select id="monthly_income" name="monthly_income" required>
+                        <option value="">Gelir aralığı seçiniz</option>
+                    </select>
+                </div>
+
+                <button type="submit">Tahmin Et</button>
+            </form>
+        </div>
+
+        <div class="result-container" id="resultContainer">
+            <h1>Tahmin Sonucu</h1>
+            <div class="warning-info" style="background-color: #fef9c3; color: #854d0e; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                Bu sonuç, girdiğiniz bilgilere dayalı bir tahmindir. Kesin sonuç değildir ve KYK'nın resmi değerlendirmesi farklı olabilir.
+            </div>
+            <div class="result-message" id="resultMessage"></div>
+            <div class="charts-container">
+                <div class="chart-wrapper">
+                    <div class="chart-title">Burs Alma Olasılığı</div>
+                    <canvas id="scholarshipChart"></canvas>
+                </div>
+                <div class="chart-wrapper">
+                    <div class="chart-title">Kredi Alma Olasılığı</div>
+                    <canvas id="loanChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+
+    <script>
+        // Mevcut minWages objesi
+        const minWages = {
+            '2020': 2324.00,
+            '2021': 2825.00,
+            '2022': 5500.00,
+            '2023': 11402.00,
+            '2024': 17002.00
+        };
+
+        // Ailedeki toplam kişi sayısı değiştiğinde kardeş sayısını güncelle
+        document.getElementById('siblings_count').addEventListener('change', function() {
+            const totalMembers = parseInt(this.value) || 0;
+            const siblingsInput = document.getElementById('siblings_number');
+            const maxSiblings = Math.max(0, totalMembers - 2); // Anne-baba çıkarıldı
+            
+            siblingsInput.max = maxSiblings;
+            if (parseInt(siblingsInput.value) > maxSiblings) {
+                siblingsInput.value = maxSiblings;
+            }
+        });
+
+        // Yıl seçimi değiştiğinde asgari ücreti ve gelir aralıklarını güncelle
+        document.getElementById('application_year').addEventListener('change', async function() {
+            const selectedYear = this.value;
+            const minWageInfo = document.getElementById('selectedYearWage');
+            const incomeSelect = document.getElementById('monthly_income');
+            
+            if (selectedYear) {
+                minWageInfo.textContent = `${minWages[selectedYear].toLocaleString('tr-TR')} TL`;
+                
+                try {
+                    const response = await fetch(`/get_income_ranges/${selectedYear}`);
+                    const data = await response.json();
+                    
+                    incomeSelect.innerHTML = '<option value="">Gelir aralığı seçiniz</option>';
+                    
+                    data.ranges.forEach(range => {
+                        const option = new Option(range, range);
+                        incomeSelect.add(option);
+                    });
+                } catch (error) {
+                    console.error('Gelir aralıkları yüklenirken hata:', error);
+                }
+            } else {
+                minWageInfo.textContent = 'Yıl seçiniz';
+                incomeSelect.innerHTML = '<option value="">Gelir aralığı seçiniz</option>';
+            }
+        });
+
+        // Şehirleri yükle
+        fetch('/get_cities')
+            .then(response => response.json())
+            .then(data => {
+                const citySelects = document.querySelectorAll('#city_of_residence, #city_of_study');
+                citySelects.forEach(select => {
+                    data.cities.forEach(city => {
+                        const option = new Option(
+                            city.charAt(0).toUpperCase() + city.slice(1), 
+                            city.toLowerCase()
+                        );
+                        select.add(option);
+                    });
+                });
+            });
+             // Meslekleri yükle
+        fetch('/get_occupations')
+            .then(response => response.json())
+            .then(data => {
+                const jobSelects = document.querySelectorAll('#mother_job, #father_job');
+                jobSelects.forEach(select => {
+                    data.occupations.forEach(job => {
+                        const option = new Option(
+                            job.charAt(0).toUpperCase() + job.slice(1), 
+                            job.toLowerCase()
+                        );
+                        select.add(option);
+                    });
+                });
+            });
+
+        // Aile durumu kontrolü
+        document.getElementById('family_status').addEventListener('change', function() {
+            const motherJobSelect = document.getElementById('mother_job');
+            const fatherJobSelect = document.getElementById('father_job');
+            
+            motherJobSelect.disabled = false;
+            fatherJobSelect.disabled = false;
+            motherJobSelect.required = true;
+            fatherJobSelect.required = true;
+            
+            switch(this.value) {
+                case 'anne':  // Sadece anne ile birlikte
+            fatherJobSelect.value = '';  // Baba mesleği seçimini temizle
+            fatherJobSelect.disabled = true;  // Baba mesleği seçimini devre dışı bırak
+            fatherJobSelect.required = false;  // Baba mesleği zorunlu olmasın
+            break;
+
+        case 'baba':  // Sadece baba ile birlikte
+            motherJobSelect.value = '';  // Anne mesleği seçimini temizle
+            motherJobSelect.disabled = true;  // Anne mesleği seçimini devre dışı bırak
+            motherJobSelect.required = false;  // Anne mesleği zorunlu olmasın
+            break;
+
+        case 'vefat':  // Anne veya baba vefat etmiş
+            motherJobSelect.value = '';  // Anne mesleği seçimini temizle
+            fatherJobSelect.value = '';  // Baba mesleği seçimini temizle
+            motherJobSelect.disabled = true;  // Anne mesleği seçimini devre dışı bırak
+            fatherJobSelect.disabled = true;  // Baba mesleği seçimini devre dışı bırak
+            motherJobSelect.required = false;  // Anne mesleği zorunlu olmasın
+            fatherJobSelect.required = false;  // Baba mesleği zorunlu olmasın
+            break;
+    }
+        });
+
+        // Form gönderimi
+        document.getElementById('predictionForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target);
+        
+        try {
+            const response = await fetch('/predict', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                throw new Error('Server error');
+            }
+            
+            const result = await response.json();
+            
+            if (result.error) {
+                alert(result.error);
+                return;
+            }
+            
+            document.getElementById('resultContainer').style.display = 'block';
+            
+            // Sonuç mesajını hazırla
+            const messageEl = document.getElementById('resultMessage');
+            const probability = result.probability;
+            
+            if (probability > 50) {
+                messageEl.className = 'result-message success-message';
+                messageEl.innerHTML = `<strong>Tebrikler!</strong> Burs alma ihtimaliniz daha yüksek görünüyor.<br>
+                    Değerlendirme sonucunuza göre burs alma olasılığınız %${probability.toFixed(1)}.`;
+            } else {
+                messageEl.className = 'result-message warning-message';
+                messageEl.innerHTML = `Değerlendirme sonucunuza göre kredi alma ihtimaliniz daha yüksek görünüyor.<br>
+                    Burs alma olasılığınız %${probability.toFixed(1)}.`;
+            }
+            
+            // Burs grafiği
+            const scholarshipCtx = document.getElementById('scholarshipChart').getContext('2d');
+            new Chart(scholarshipCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Burs Olasılığı', 'Diğer'],
+                    datasets: [{
+                        data: [probability, 100 - probability],
+                        backgroundColor: ['#059669', '#e2e8f0']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+            
+            // Kredi grafiği
+            const loanCtx = document.getElementById('loanChart').getContext('2d');
+            new Chart(loanCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Kredi Olasılığı', 'Diğer'],
+                    datasets: [{
+                        data: [100 - probability, probability],
+                        backgroundColor: ['#ea580c', '#e2e8f0']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+            
+        } catch (error) {
+            console.error('Hata:', error);
+            alert('Tahmin sırasında bir hata oluştu. Lütfen tüm alanları kontrol edip tekrar deneyiniz.');
+        }
+    });
+    </script>
+</body>
+</html>

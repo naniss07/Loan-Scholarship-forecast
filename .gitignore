@@ -1,0 +1,7 @@
+"*" 
+"!app.py" 
+"!burs_kredi_model.pkl" 
+"!encoding_veriler.csv" 
+"!templates/index.html" 
+"templates/*" 
+"!templates/index.html" 
